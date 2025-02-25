@@ -7,6 +7,25 @@ import stripe
 from items.models import Item, Order
 
 
+def buy_item_intent(request, id):
+    item = get_object_or_404(Item, pk=id)
+    try:
+        
+        # Настраиваем секретный ключ Stripe в зависимости от валюты товара
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        
+        # Создаем PaymentIntent для одного товара
+        intent = stripe.PaymentIntent.create(
+            amount=int(item.price * 100), 
+            currency=item.currency,        
+            payment_method_types=['card'],  
+        )
+        
+        return JsonResponse({'client_secret': intent.client_secret})
+    except Exception as e:
+        print(e)
+        return HttpResponse(content=str(e), status=400)
+    
 def buy_item(request, id):
     item = get_object_or_404(Item, pk=id)
     try:
@@ -23,7 +42,6 @@ def buy_item(request, id):
           ],
           mode="payment",
           ui_mode="embedded",
-          # The URL of your payment completion page
           return_url="http://localhost:8000/success"
         )
         return JsonResponse({'session_id': session.id})
@@ -39,6 +57,13 @@ def item_detail(request, id):
         'stripe_public_key': settings.STRIPE_PUBLIC_KEY
     })
     
+def item_detail_intent(request, id):
+    item = get_object_or_404(Item, id=id)
+    return render(request, 'item_intent.html', {
+        'item': item,
+        'stripe_public_key': settings.STRIPE_PUBLIC_KEY
+    })
+    
 def success(request):
     return render(request, 'success.html')
     
@@ -46,10 +71,6 @@ def success(request):
 def buy_order(request, id):
     # Получаем заказ
     order = get_object_or_404(Order, id=id)
-    currency = order.items.first().currency
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-
-    # Формируем список элементов для Checkout
     line_items = []
     for item in order.items.all():
         line_items.append({
@@ -58,7 +79,7 @@ def buy_order(request, id):
                 'product_data': {
                     'name': item.name,
                 },
-                'unit_amount': int(item.price * 100),  # Цена в центах
+                'unit_amount': int(item.price * 100),  
             },
             'quantity': 1
         })
@@ -76,11 +97,37 @@ def buy_order(request, id):
     )
 
     return JsonResponse({'session_id': session.id})
-  
+
+
+def buy_order_intent(request, id):
+    order = get_object_or_404(Order, id=id)
+    currency = order.get_currency()
+    
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    
+    total_amount = int(order.total_price * 100)
+    
+    intent = stripe.PaymentIntent.create(
+        amount=total_amount,            
+        currency=currency,             
+        payment_method_types=['card'],  
+    )
+    
+    return JsonResponse({'client_secret': intent.client_secret})
+
+
 def order_detail(request, id):
     order = get_object_or_404(Order, id=id)
     currency = order.items.first().currency
     return render(request, 'order.html', {
+        'order': order,
+        'stripe_public_key': settings.STRIPE_PUBLIC_KEY
+    })
+    
+def order_detail_intent(request, id):
+    order = get_object_or_404(Order, id=id)
+    currency = order.items.first().currency
+    return render(request, 'order_intent.html', {
         'order': order,
         'stripe_public_key': settings.STRIPE_PUBLIC_KEY
     })

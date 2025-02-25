@@ -1,8 +1,14 @@
-API методы:
+API методы с использованием Stripe Session:
 * GET /item/{id}: Страница товара с кнопкой "Buy", перенаправляющей на Stripe Checkout.
 * GET /buy/{id}: Возвращает Stripe Session ID для оплаты товара.
 * GET /order/{id}: Страница заказа с общей стоимостью, скидками и кнопкой "Buy".
 * GET /buy_order/{id}: Возвращает Stripe Session ID для оплаты заказа с учетом скидок.
+
+API методы с использованием Stripe Payment Intent:
+* GET intent/item/{id}: Страница товара с кнопкой "Buy", перенаправляющей на Stripe Checkout.
+* GET intent/buy/{id}: Возвращает Stripe Session ID для оплаты товара.
+* GET intent/order/{id}: Страница заказа с общей стоимостью, скидками и кнопкой "Buy".
+* GET intent/buy_order/{id}: Возвращает Stripe Session ID для оплаты заказа с учетом скидок.
 
 Требования
 * Python 3.10

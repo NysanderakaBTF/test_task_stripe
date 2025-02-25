@@ -24,7 +24,14 @@ class Order(models.Model):
     discounts = models.ManyToManyField(Discount, blank=True)
     @property
     def total_price(self):
-        return self.items.aggregate(models.Sum("price")).get("price__sum", 0)
+        total_price_wo_discount = self.items.aggregate(models.Sum("price")).get("price__sum", 0)
+        if self.discounts.exists():
+            discount = self.discounts.all().aggregate(models.Sum("amount")).get("amount__sum", 0)
+            if discount > 100:
+                discount = 100
+        else:
+            discount = 0
+        return total_price_wo_discount*(100-discount)/100
 
     def get_currency(self):
         return self.items.first().currency if self.items.exists() else 'usd'
